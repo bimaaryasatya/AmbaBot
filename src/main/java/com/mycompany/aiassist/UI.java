@@ -43,7 +43,7 @@ public class UI extends javax.swing.JFrame {
 
         jPanel1.setBackground(new java.awt.Color(221, 221, 221));
 
-        btnGo.setText("GO");
+        btnGo.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icon/analysis_analytics_magnifier_search_locate_magnifyng_glass_icon_153884.png"))); // NOI18N
 
         txtPrompt.setText("Create a Prompt");
 
@@ -53,8 +53,8 @@ public class UI extends javax.swing.JFrame {
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                 .addGap(4, 4, 4)
-                .addComponent(txtPrompt, javax.swing.GroupLayout.DEFAULT_SIZE, 238, Short.MAX_VALUE)
-                .addGap(18, 18, 18)
+                .addComponent(txtPrompt, javax.swing.GroupLayout.DEFAULT_SIZE, 250, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btnGo, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
