@@ -4,17 +4,71 @@
  */
 package com.mycompany.aiassist;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
+
 /**
  *
  * @author bimazznxt
  */
 public class UI extends javax.swing.JFrame {
 
+    private List<Integer> context = null;
+    private boolean initialized = false;
+
     /**
      * Creates new form UI
      */
     public UI() {
         initComponents();
+        messagePanel = new JPanel();
+        messagePanel.setLayout(new BoxLayout(messagePanel, BoxLayout.Y_AXIS));
+        jScrollPane1.setViewportView(messagePanel);
+        txtPrompt.setText("Ask anything");
+        txtPrompt.setForeground(Color.GRAY);
+
+        txtPrompt.addFocusListener(new FocusAdapter() {
+            public void focusGained(FocusEvent e) {
+                if (txtPrompt.getText().equals("Ask anything")) {
+                    txtPrompt.setText("");
+                    txtPrompt.setForeground(Color.BLACK);
+                }
+            }
+
+            public void focusLost(FocusEvent e) {
+                if (txtPrompt.getText().isEmpty()) {
+                    txtPrompt.setText("Ask anything");
+                    txtPrompt.setForeground(Color.GRAY);
+                }
+            }
+        });
+        addResponseBubble("HI! How can I help you today.");
     }
 
     /**
@@ -35,7 +89,7 @@ public class UI extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        BotArea = new javax.swing.JTextArea();
+        messagePanel = new javax.swing.JPanel();
 
         jLabel2.setText("jLabel2");
 
@@ -44,8 +98,18 @@ public class UI extends javax.swing.JFrame {
         jPanel1.setBackground(new java.awt.Color(221, 221, 221));
 
         btnGo.setText("GO");
+        btnGo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnGoActionPerformed(evt);
+            }
+        });
 
-        txtPrompt.setText("Create a Prompt");
+        txtPrompt.setText("Ask anything");
+        txtPrompt.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                txtPromptActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -105,10 +169,18 @@ public class UI extends javax.swing.JFrame {
 
         jPanel3.setBackground(new java.awt.Color(243, 243, 243));
 
-        BotArea.setBackground(new java.awt.Color(213, 238, 255));
-        BotArea.setColumns(20);
-        BotArea.setRows(5);
-        jScrollPane1.setViewportView(BotArea);
+        javax.swing.GroupLayout messagePanelLayout = new javax.swing.GroupLayout(messagePanel);
+        messagePanel.setLayout(messagePanelLayout);
+        messagePanelLayout.setHorizontalGroup(
+            messagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 310, Short.MAX_VALUE)
+        );
+        messagePanelLayout.setVerticalGroup(
+            messagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 419, Short.MAX_VALUE)
+        );
+
+        jScrollPane1.setViewportView(messagePanel);
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
@@ -116,18 +188,177 @@ public class UI extends javax.swing.JFrame {
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 312, Short.MAX_VALUE)
+                .addComponent(jScrollPane1)
                 .addContainerGap())
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 421, Short.MAX_VALUE)
+            .addComponent(jScrollPane1)
         );
 
         getContentPane().add(jPanel3, java.awt.BorderLayout.CENTER);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void btnGoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGoActionPerformed
+        processPrompt();
+    }//GEN-LAST:event_btnGoActionPerformed
+
+    private void txtPromptActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtPromptActionPerformed
+        processPrompt();
+    }//GEN-LAST:event_txtPromptActionPerformed
+
+    private void processPrompt() {
+        String prompt = txtPrompt.getText().trim();
+        if (prompt.isEmpty()) {
+            return;
+        }
+
+        // Show prompt bubble
+        addPromptBubble(prompt);
+
+        txtPrompt.setText(""); // Clear prompt input
+
+        Component thinkingBubble = addThinkingBubble();
+
+        // Run API call in background
+        new Thread(() -> {
+            String response = callOllamaAPI(prompt);
+
+            SwingUtilities.invokeLater(() -> {
+                messagePanel.remove(thinkingBubble);
+                addResponseBubble(response);
+                messagePanel.revalidate();
+                messagePanel.repaint();
+            });
+        }).start();
+    }
+
+    private void addPromptBubble(String text) {
+        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        wrapper.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        JLabel label = new JLabel("<html><body style='width: 180px;'>" + text + "</body></html>");
+        label.setOpaque(true);
+        label.setBackground(new Color(173, 216, 230));
+        label.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        int width = 250;
+        label.setSize(width, Short.MAX_VALUE);
+
+        wrapper.add(label);
+        messagePanel.add(wrapper);
+        messagePanel.revalidate();
+        scrollToBottom();
+    }
+
+    private void addResponseBubble(String text) {
+        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        wrapper.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        JTextArea textArea = new JTextArea(text);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setEditable(false);
+        textArea.setBackground(new Color(245, 245, 245));
+        textArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        textArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
+
+        // Calculate height based on content
+        int width = 250;
+        textArea.setSize(width, Short.MAX_VALUE);  // allow word wrap
+        Dimension preferredSize = textArea.getPreferredSize();
+        preferredSize.width = width;
+        textArea.setPreferredSize(preferredSize);
+
+        wrapper.add(textArea);
+        messagePanel.add(wrapper);
+        messagePanel.revalidate();
+        scrollToBottom();
+    }
+
+    private Component addThinkingBubble() {
+        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        wrapper.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        JLabel label = new JLabel("Thinking...");
+        label.setOpaque(true);
+        label.setBackground(new Color(230, 230, 230)); // light gray
+        label.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        label.setFont(new Font("SansSerif", Font.ITALIC, 14));
+
+        wrapper.add(label);
+        messagePanel.add(wrapper);
+        messagePanel.revalidate();
+        scrollToBottom();
+
+        return wrapper; // return so we can remove it later
+    }
+
+    private void scrollToBottom() {
+        JScrollBar vertical = jScrollPane1.getVerticalScrollBar();
+        SwingUtilities.invokeLater(() -> vertical.setValue(vertical.getMaximum()));
+    }
+
+    private String callOllamaAPI(String prompt) {
+        try {
+            System.out.println("Prompt: \""+prompt+"\"");
+            JsonObject requestJson = new JsonObject();
+            requestJson.addProperty("model", "deepseek-r1:1.5b");
+            requestJson.addProperty("prompt", prompt);
+            if (context != null && !context.isEmpty()) {
+                JsonArray contextArray = new JsonArray();
+                for (int token : context) {
+                    contextArray.add(token);
+                }
+                requestJson.add("context", contextArray);
+            }
+
+            // Send HTTP request (same as before)
+            String jsonInputString = new Gson().toJson(requestJson);
+            URL url = new URL("http://localhost:11434/api/generate");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(jsonInputString.getBytes(StandardCharsets.UTF_8));
+                os.flush();
+            }
+
+            // Read and process response
+            StringBuilder rawResponse = new StringBuilder();
+            Gson gson = new Gson();
+
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    JsonObject json = gson.fromJson(line, JsonObject.class);
+                    if (json.has("response")) {
+                        rawResponse.append(json.get("response").getAsString());
+                    }
+                    if (json.has("done") && json.get("done").getAsBoolean()) {
+                        if (json.has("context")) {
+                            // Save context
+                            JsonArray ctx = json.getAsJsonArray("context");
+                            context = new ArrayList<>();
+                            for (JsonElement el : ctx) {
+                                context.add(el.getAsInt());
+                            }
+                        }
+                    }
+                }
+            }
+            System.out.println("Response: \""+rawResponse.toString()+"\"\n");
+            // Clean unwanted tags (optional)
+            return rawResponse.toString().replaceAll("(?s)<think>.*?</think>", "").trim();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
+    }
 
     /**
      * @param args the command line arguments
@@ -159,13 +390,14 @@ public class UI extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new UI().setVisible(true);
+                UI ui = new UI();
+                ui.setResizable(false);
+                ui.setVisible(true);
             }
         });
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JTextArea BotArea;
     private javax.swing.JLabel Settings;
     private javax.swing.JButton btnGo;
     private javax.swing.JLabel jLabel2;
@@ -174,6 +406,7 @@ public class UI extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JPanel messagePanel;
     private javax.swing.JTextField txtPrompt;
     // End of variables declaration//GEN-END:variables
 }
