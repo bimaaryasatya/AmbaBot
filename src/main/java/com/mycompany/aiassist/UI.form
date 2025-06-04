@@ -74,11 +74,17 @@
               <Image iconType="3" name="/icon/analysis_analytics_magnifier_search_locate_magnifyng_glass_icon_153884.png"/>
             </Property>
           </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnGoActionPerformed"/>
+          </Events>
         </Component>
         <Component class="javax.swing.JTextField" name="txtPrompt">
           <Properties>
-            <Property name="text" type="java.lang.String" value="Create a Prompt"/>
+            <Property name="text" type="java.lang.String" value="Ask anything"/>
           </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="txtPromptActionPerformed"/>
+          </Events>
         </Component>
       </SubComponents>
     </Container>
@@ -154,18 +160,12 @@
           <Group type="103" groupAlignment="0" attributes="0">
               <Group type="102" alignment="0" attributes="0">
                   <EmptySpace max="-2" attributes="0"/>
-                  <Component id="jLabel1" pref="118" max="32767" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
               </Group>
           </Group>
         </DimensionLayout>
         <DimensionLayout dim="1">
           <Group type="103" groupAlignment="0" attributes="0">
-              <Group type="102" alignment="0" attributes="0">
-                  <EmptySpace max="-2" attributes="0"/>
-                  <Component id="jLabel1" min="-2" max="-2" attributes="0"/>
-                  <EmptySpace pref="324" max="32767" attributes="0"/>
-              </Group>
           </Group>
         </DimensionLayout>
       </Layout>
@@ -187,22 +187,6 @@
           <BorderConstraints direction="After"/>
         </Constraint>
       </Constraints>
-
-      <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
-      <SubComponents>
-        <Component class="javax.swing.JTextArea" name="jTextArea1">
-          <Properties>
-            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-              <Color blue="ec" green="ec" red="ec" type="rgb"/>
-            </Property>
-            <Property name="columns" type="int" value="20"/>
-            <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-              <Color blue="33" green="33" red="33" type="rgb"/>
-            </Property>
-            <Property name="rows" type="int" value="5"/>
-            <Property name="text" type="java.lang.String" value="Ini buat chat&#xa;&#xa;ini buat chat&#xa;&#xa;ini buat chat"/>
-          </Properties>
-        </Component>
       </SubComponents>
     </Container>
   </SubComponents>
