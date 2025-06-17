@@ -5,11 +5,11 @@
 package com.mycompany.aiassist;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -18,6 +18,10 @@ import java.awt.Font;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -27,7 +31,9 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JTextArea;
@@ -41,12 +47,15 @@ public class UI extends javax.swing.JFrame {
 
     private List<Integer> context = null;
     private boolean initialized = false;
+    private DefaultListModel<ChatSession> chatSessionListModel;
+    private ChatSession currentChatSession;
 
     /**
      * Creates new form UI
      */
     public UI() {
         initComponents();
+        
         messagePanel = new JPanel();
         messagePanel.setLayout(new BoxLayout(messagePanel, BoxLayout.Y_AXIS));
         jScrollPane1.setViewportView(messagePanel);
@@ -68,7 +77,21 @@ public class UI extends javax.swing.JFrame {
                 }
             }
         });
-        addResponseBubble("HI! How can I help you today.");
+        
+        chatSessionListModel = new DefaultListModel<>();
+        jList1.setModel(chatSessionListModel);
+        jList1.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && jList1.getSelectedValue() != null && jList1.getSelectedValue() != currentChatSession) {
+                loadChatSession(jList1.getSelectedValue());
+            }
+        });
+        loadAllChatSessions();
+        if (chatSessionListModel.isEmpty()) {
+            startNewChatSession();
+        } else {
+            jList1.setSelectedIndex(0);
+            loadChatSession(chatSessionListModel.getElementAt(0));
+        }
     }
 
     /**
@@ -81,21 +104,85 @@ public class UI extends javax.swing.JFrame {
     private void initComponents() {
 
         jLabel2 = new javax.swing.JLabel();
-        jPanel1 = new javax.swing.JPanel();
-        btnGo = new javax.swing.JButton();
-        txtPrompt = new javax.swing.JTextField();
         jPanel2 = new javax.swing.JPanel();
         Settings = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         messagePanel = new javax.swing.JPanel();
+        jPanel1 = new javax.swing.JPanel();
+        btnGo = new javax.swing.JButton();
+        txtPrompt = new javax.swing.JTextField();
+        jPanel4 = new javax.swing.JPanel();
         jScrollPane2 = new javax.swing.JScrollPane();
         jList1 = new javax.swing.JList<>();
+        jButton1 = new javax.swing.JButton();
+        jLabel1 = new javax.swing.JLabel();
+        jButton2 = new javax.swing.JButton();
 
         jLabel2.setText("jLabel2");
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+
+        jPanel2.setBackground(new java.awt.Color(243, 243, 243));
+
+        Settings.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        Settings.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icon/Settings_30027.png"))); // NOI18N
+        Settings.setToolTipText("");
+
+        jLabel3.setFont(new java.awt.Font("Segoe UI Black", 2, 18)); // NOI18N
+        jLabel3.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel3.setText("AmbaBot");
+
+        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+        jPanel2.setLayout(jPanel2Layout);
+        jPanel2Layout.setHorizontalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                .addGap(17, 17, 17)
+                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(Settings, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
+        );
+        jPanel2Layout.setVerticalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(Settings, javax.swing.GroupLayout.DEFAULT_SIZE, 53, Short.MAX_VALUE)
+                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+
+        jPanel3.setBackground(new java.awt.Color(243, 243, 243));
+
+        javax.swing.GroupLayout messagePanelLayout = new javax.swing.GroupLayout(messagePanel);
+        messagePanel.setLayout(messagePanelLayout);
+        messagePanelLayout.setHorizontalGroup(
+            messagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 467, Short.MAX_VALUE)
+        );
+        messagePanelLayout.setVerticalGroup(
+            messagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 419, Short.MAX_VALUE)
+        );
+
+        jScrollPane1.setViewportView(messagePanel);
+
+        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        jPanel3.setLayout(jPanel3Layout);
+        jPanel3Layout.setHorizontalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addGap(0, 0, 0)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        jPanel3Layout.setVerticalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1)
+        );
 
         jPanel1.setBackground(new java.awt.Color(221, 221, 221));
 
@@ -119,7 +206,7 @@ public class UI extends javax.swing.JFrame {
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                 .addGap(4, 4, 4)
-                .addComponent(txtPrompt, javax.swing.GroupLayout.DEFAULT_SIZE, 408, Short.MAX_VALUE)
+                .addComponent(txtPrompt, javax.swing.GroupLayout.DEFAULT_SIZE, 263, Short.MAX_VALUE)
                 .addGap(18, 18, 18)
                 .addComponent(btnGo, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
@@ -134,80 +221,80 @@ public class UI extends javax.swing.JFrame {
                 .addGap(17, 17, 17))
         );
 
-        getContentPane().add(jPanel1, java.awt.BorderLayout.PAGE_END);
-
-        jPanel2.setBackground(new java.awt.Color(243, 243, 243));
-
-        Settings.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        Settings.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icon/Settings_30027.png"))); // NOI18N
-        Settings.setToolTipText("");
-
-        jLabel3.setFont(new java.awt.Font("Segoe UI Black", 2, 18)); // NOI18N
-        jLabel3.setForeground(new java.awt.Color(51, 51, 51));
-        jLabel3.setText("AmbaBot");
-
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                .addGap(17, 17, 17)
-                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 302, Short.MAX_VALUE)
-                .addComponent(Settings, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(Settings, javax.swing.GroupLayout.DEFAULT_SIZE, 53, Short.MAX_VALUE)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
-        );
-
-        getContentPane().add(jPanel2, java.awt.BorderLayout.PAGE_START);
-
-        jPanel3.setBackground(new java.awt.Color(243, 243, 243));
-
-        javax.swing.GroupLayout messagePanelLayout = new javax.swing.GroupLayout(messagePanel);
-        messagePanel.setLayout(messagePanelLayout);
-        messagePanelLayout.setHorizontalGroup(
-            messagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 467, Short.MAX_VALUE)
-        );
-        messagePanelLayout.setVerticalGroup(
-            messagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 419, Short.MAX_VALUE)
-        );
-
-        jScrollPane1.setViewportView(messagePanel);
-
-        jList1.setModel(new javax.swing.AbstractListModel<String>() {
-            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
-        });
         jScrollPane2.setViewportView(jList1);
 
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 145, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 337, javax.swing.GroupLayout.PREFERRED_SIZE)
+        jButton1.setText("New Chat");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        jLabel1.setText("Chats:");
+
+        jButton2.setText("X");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+        jPanel4.setLayout(jPanel4Layout);
+        jPanel4Layout.setHorizontalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, 139, Short.MAX_VALUE))
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jButton2)))
                 .addContainerGap())
         );
-        jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane1)
-            .addComponent(jScrollPane2)
+        jPanel4Layout.setVerticalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jButton1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel1)
+                    .addComponent(jButton2))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 428, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
         );
 
-        getContentPane().add(jPanel3, java.awt.BorderLayout.CENTER);
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGap(0, 0, 0))
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, 0)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGap(0, 0, 0)
+                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(0, 0, 0))
+        );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -220,28 +307,57 @@ public class UI extends javax.swing.JFrame {
         processPrompt();
     }//GEN-LAST:event_txtPromptActionPerformed
 
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        startNewChatSession();
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        deleteChatSession();
+    }//GEN-LAST:event_jButton2ActionPerformed
+
     private void processPrompt() {
         String prompt = txtPrompt.getText().trim();
         if (prompt.isEmpty()) {
             return;
         }
 
-        // Show prompt bubble
+        currentChatSession.addMessage(new ChatMessage(ChatMessage.Sender.USER, prompt));
         addPromptBubble(prompt);
-
-        txtPrompt.setText(""); // Clear prompt input
+        txtPrompt.setText("");
 
         Component thinkingBubble = addThinkingBubble();
 
-        // Run API call in background
         new Thread(() -> {
             String response = callOllamaAPI(prompt);
 
             SwingUtilities.invokeLater(() -> {
                 messagePanel.remove(thinkingBubble);
+                currentChatSession.addMessage(new ChatMessage(ChatMessage.Sender.AI, response));
                 addResponseBubble(response);
                 messagePanel.revalidate();
                 messagePanel.repaint();
+                scrollToBottom();
+
+                if (context != null) {
+                    currentChatSession.setContextTokens(new ArrayList<>(context));
+                }
+
+                if (currentChatSession.getTitle().equals("New Chat") || currentChatSession.getMessages().size() == 2) {
+                    String generatedTitle = generateShortTitle(prompt + " " + response);
+                    currentChatSession.setTitle(generatedTitle);
+                }
+
+                updateTitleDisplay();
+
+                int index = chatSessionListModel.indexOf(currentChatSession);
+                if (index != -1) {
+                    chatSessionListModel.setElementAt(currentChatSession, index);
+                } else {
+                    chatSessionListModel.addElement(currentChatSession);
+                    jList1.setSelectedValue(currentChatSession, true);
+                }
+
+                saveChatSession(currentChatSession);
             });
         }).start();
     }
@@ -275,9 +391,8 @@ public class UI extends javax.swing.JFrame {
         textArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         textArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
-        // Calculate height based on content
         int width = 250;
-        textArea.setSize(width, Short.MAX_VALUE);  // allow word wrap
+        textArea.setSize(width, Short.MAX_VALUE);
         Dimension preferredSize = textArea.getPreferredSize();
         preferredSize.width = width;
         textArea.setPreferredSize(preferredSize);
@@ -294,7 +409,7 @@ public class UI extends javax.swing.JFrame {
 
         JLabel label = new JLabel("Thinking...");
         label.setOpaque(true);
-        label.setBackground(new Color(230, 230, 230)); // light gray
+        label.setBackground(new Color(230, 230, 230));
         label.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         label.setFont(new Font("SansSerif", Font.ITALIC, 14));
 
@@ -303,7 +418,7 @@ public class UI extends javax.swing.JFrame {
         messagePanel.revalidate();
         scrollToBottom();
 
-        return wrapper; // return so we can remove it later
+        return wrapper;
     }
 
     private void scrollToBottom() {
@@ -313,11 +428,16 @@ public class UI extends javax.swing.JFrame {
 
     private String callOllamaAPI(String prompt) {
         try {
-            System.out.println("Prompt: \""+prompt+"\"");
+            System.out.println("Prompt: \"" + prompt + "\"");
             JsonObject requestJson = new JsonObject();
             requestJson.addProperty("model", "deepseek-r1:1.5b");
             requestJson.addProperty("prompt", prompt);
-            if (context != null && !context.isEmpty()) {
+
+            if (context == null) {
+                context = new ArrayList<>();
+            }
+
+            if (!context.isEmpty()) {
                 JsonArray contextArray = new JsonArray();
                 for (int token : context) {
                     contextArray.add(token);
@@ -325,7 +445,6 @@ public class UI extends javax.swing.JFrame {
                 requestJson.add("context", contextArray);
             }
 
-            // Send HTTP request (same as before)
             String jsonInputString = new Gson().toJson(requestJson);
             URL url = new URL("http://localhost:11434/api/generate");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -338,7 +457,6 @@ public class UI extends javax.swing.JFrame {
                 os.flush();
             }
 
-            // Read and process response
             StringBuilder rawResponse = new StringBuilder();
             Gson gson = new Gson();
 
@@ -351,23 +469,224 @@ public class UI extends javax.swing.JFrame {
                     }
                     if (json.has("done") && json.get("done").getAsBoolean()) {
                         if (json.has("context")) {
-                            // Save context
                             JsonArray ctx = json.getAsJsonArray("context");
                             context = new ArrayList<>();
                             for (JsonElement el : ctx) {
                                 context.add(el.getAsInt());
                             }
+                            if (currentChatSession != null) {
+                                currentChatSession.setContextTokens(new ArrayList<>(context));
+                            }
                         }
                     }
                 }
             }
-            System.out.println("Response: \""+rawResponse.toString()+"\"\n");
-            // Clean unwanted tags (optional)
+            System.out.println("Response: \"" + rawResponse.toString() + "\"\n");
             return rawResponse.toString().replaceAll("(?s)<think>.*?</think>", "").trim();
 
         } catch (Exception e) {
             e.printStackTrace();
             return "Error: " + e.getMessage();
+        }
+    }
+
+    private String generateShortTitle(String conversationSnippet) {
+        try {
+            JsonObject requestJson = new JsonObject();
+            requestJson.addProperty("model", "deepseek-r1:1.5b");
+            String titlePrompt = "Summarize the following conversation into a very short title (under 5 words). Do not include any introductory or concluding phrases. Just the title.\n\n" + conversationSnippet;
+            requestJson.addProperty("prompt", titlePrompt);
+            String jsonInputString = new Gson().toJson(requestJson);
+            URL url = new URL("http://localhost:11434/api/generate");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(jsonInputString.getBytes(StandardCharsets.UTF_8));
+                os.flush();
+            }
+
+            StringBuilder titleResponse = new StringBuilder();
+            Gson gson = new Gson();
+
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    JsonObject json = gson.fromJson(line, JsonObject.class);
+                    if (json.has("response")) {
+                        titleResponse.append(json.get("response").getAsString());
+                    }
+                }
+            }
+
+            String cleanTitle = titleResponse.toString().trim().replaceAll("(?s)<think>.*?</think>", "").trim().replaceAll("[^a-zA-Z0-9\\s]", "").trim();
+            if (cleanTitle.isEmpty()) {
+                return "Untitled Chat";
+            }
+            return cleanTitle;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Untitled Chat";
+        }
+    }
+
+    private void updateTitleDisplay() {
+        if (currentChatSession != null) {
+            this.setTitle(currentChatSession.getTitle());
+        } else {
+            this.setTitle("AmbaBot");
+        }
+    }
+
+    private void startNewChatSession() {
+        if (currentChatSession != null && !currentChatSession.getMessages().isEmpty() && !currentChatSession.getTitle().equals("New Chat")) {
+            saveChatSession(currentChatSession);
+        }
+
+        currentChatSession = new ChatSession("New Chat");
+        context = new ArrayList<>();
+        updateTitleDisplay();
+        messagePanel.removeAll();
+        messagePanel.revalidate();
+        messagePanel.repaint();
+        addResponseBubble("HI! How can I help you today.");
+
+        if (!chatSessionListModel.contains(currentChatSession)) {
+            chatSessionListModel.addElement(currentChatSession);
+        }
+        jList1.setSelectedValue(currentChatSession, true);
+    }
+
+    private void loadChatSession(ChatSession session) {
+        if (currentChatSession != null
+                && currentChatSession != session
+                && !currentChatSession.getMessages().isEmpty()
+                && chatSessionListModel.contains(currentChatSession)) {
+            saveChatSession(currentChatSession);
+        }
+
+        currentChatSession = session;
+        context = session.getContextTokens() != null ? new ArrayList<>(session.getContextTokens()) : new ArrayList<>();
+        updateTitleDisplay();
+
+        messagePanel.removeAll();
+        for (ChatMessage msg : session.getMessages()) {
+            if (msg.getSender() == ChatMessage.Sender.USER) {
+                addPromptBubble(msg.getContent());
+            } else {
+                addResponseBubble(msg.getContent());
+            }
+        }
+        messagePanel.revalidate();
+        messagePanel.repaint();
+        scrollToBottom();
+
+        jList1.setSelectedValue(currentChatSession, true);
+    }
+
+    private void saveChatSession(ChatSession session) {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String json = gson.toJson(session);
+
+        File sessionsDir = new File(System.getProperty("user.home") + File.separator + "AmbaBot_ChatSessions");
+        if (!sessionsDir.exists()) {
+            sessionsDir.mkdirs();
+        }
+
+        String fileName = session.getId() + ".json";
+        File sessionFile = new File(sessionsDir, fileName);
+
+        try (FileWriter writer = new FileWriter(sessionFile)) {
+            writer.write(json);
+            System.out.println("Chat session saved: " + sessionFile.getAbsolutePath());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Error saving chat session: " + e.getMessage());
+        }
+    }
+
+    private void loadAllChatSessions() {
+        File sessionsDir = new File(System.getProperty("user.home") + File.separator + "AmbaBot_ChatSessions");
+        if (!sessionsDir.exists()) {
+            return;
+        }
+
+        Gson gson = new Gson();
+        chatSessionListModel.clear();
+
+        File[] sessionFiles = sessionsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+        if (sessionFiles != null) {
+            java.util.Arrays.sort(sessionFiles, (f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()));
+
+            for (File file : sessionFiles) {
+                try (FileReader reader = new FileReader(file)) {
+                    ChatSession loadedSession = gson.fromJson(reader, ChatSession.class);
+                    if (loadedSession != null) {
+                        chatSessionListModel.addElement(loadedSession);
+                    }
+                } catch (IOException | JsonSyntaxException e) {
+                    e.printStackTrace();
+                    System.err.println("Error loading chat session from file: " + file.getName() + " - " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private void deleteChatSession() {
+        int selectedIndex = jList1.getSelectedIndex();
+        if (selectedIndex != -1) {
+            ChatSession sessionToDelete = chatSessionListModel.getElementAt(selectedIndex);
+
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Are you sure you want to delete '" + sessionToDelete.getTitle() + "'?",
+                    "Delete Chat Session",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                File sessionsDir = new File(System.getProperty("user.home") + File.separator + "AmbaBot_ChatSessions");
+                File sessionFile = new File(sessionsDir, sessionToDelete.getId() + ".json");
+                boolean fileDeleted = false;
+                if (sessionFile.exists()) {
+                    fileDeleted = sessionFile.delete();
+                    if (fileDeleted) {
+                        System.out.println("Deleted session file: " + sessionFile.getAbsolutePath());
+                    } else {
+                        System.err.println("Failed to delete session file: " + sessionFile.getAbsolutePath());
+                    }
+                } else {
+                    System.out.println("Session file not found, likely already deleted: " + sessionFile.getAbsolutePath());
+                    fileDeleted = true;
+                }
+
+                if (fileDeleted) {
+                    chatSessionListModel.removeElementAt(selectedIndex);
+
+                    if (sessionToDelete.equals(currentChatSession)) {
+                        if (chatSessionListModel.isEmpty()) {
+                            startNewChatSession();
+                        } else {
+                            jList1.setSelectedIndex(0);
+                            loadChatSession(chatSessionListModel.getElementAt(0));
+                        }
+                    } else {
+                        if (currentChatSession != null && chatSessionListModel.contains(currentChatSession)) {
+                            jList1.setSelectedValue(currentChatSession, true);
+                        } else if (!chatSessionListModel.isEmpty()) {
+                            jList1.setSelectedIndex(0);
+                            loadChatSession(chatSessionListModel.getElementAt(0));
+                        } else {
+                            startNewChatSession();
+                        }
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this, "Could not delete the file for '" + sessionToDelete.getTitle() + "'. Please try again.", "Deletion Failed", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Please select a chat to delete.", "No Chat Selected", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
@@ -411,12 +730,16 @@ public class UI extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel Settings;
     private javax.swing.JButton btnGo;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JList<String> jList1;
+    private javax.swing.JList<ChatSession> jList1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JPanel messagePanel;
