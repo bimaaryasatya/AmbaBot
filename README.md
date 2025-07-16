@@ -4,7 +4,7 @@ This application uses the [Ollama](https://ollama.com) runtime and the [`deepsee
 
 ## 🚀 Features
 
-- Integration with `deepseek-coder:8b` model via Ollama
+- Integration with `deepseek-r1:8b` model via Ollama
 - Local inference (no internet connection required after setup)
 - Easy installation and usage
 
