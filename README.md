@@ -1,4 +1,4 @@
-# Your Application Name
+# AmbaBot
 
 This application uses the [Ollama](https://ollama.com) runtime and the [`deepseek-r1:8b`](https://ollama.com/library/deepseek-r1) model (tag: `deepseek-r1:8b`) for advanced code understanding and generation tasks.
 
